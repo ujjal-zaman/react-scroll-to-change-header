@@ -1,0 +1,189 @@
+// import React, {  } from 'react'
+import { makeStyles, Theme, createStyles } from '@material-ui/core/styles'
+import TextField from '@material-ui/core/TextField';
+import { Box, Button, Typography, Paper } from '@material-ui/core'
+import MenuAppBar from '../Menu/AppBar'
+import CircularProgress from '@material-ui/core/CircularProgress';
+import { queryFirebase } from '../../common/FirebaseHelper'
+import React, { useState, useEffect, ChangeEvent } from 'react'
+import InputAdornment from '@material-ui/core/InputAdornment';
+import IconButton from '@material-ui/core/IconButton';
+import Visibility from '@material-ui/icons/Visibility';
+import VisibilityOff from '@material-ui/icons/VisibilityOff';
+import CheckIcon from '@material-ui/icons/Check';
+
+export const useStyles = makeStyles((theme: Theme) =>
+    createStyles({
+        root: {
+            width: "100vw",
+            position: "absolute",
+            top: 0, bottom: 0, right: 0, left: 0,
+            "& .MuiInputBase-input": {
+                fontWeight: 900,
+                color: "#3E3E3E",
+            },
+        },
+        profile_title: { fontSize: "1rem", padding: "10px 0px" },
+        hr_line: { background: "#EAEAEA", height: "1px" },
+        margin: { marginBottom: theme.spacing(2) },
+        marginRight: { marginRight: theme.spacing(1) },
+        signUpMatchCheckColor: { color: "#29ED6C" },
+        progressAlign: {
+            transform: 'translate(-50%,-50%)',
+            position: 'fixed',
+            top: "50%",
+            left: "50%",
+            transition: theme.transitions.create('transform'),
+        },
+        infoButton: {
+            fontSize: "15px",
+            borderRadius: "20px",
+
+        },
+    }))
+
+
+const MyInformation = () => {
+    const classes = useStyles();
+    const [bgColor, setBgColor] = useState<string>("")
+    const [values, setValues] = useState<any>({});
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const [colorPrimary, setColorPrimary] = useState<string>("")
+    const [colorTitle, setColorTitle] = useState<string>("")
+    const [colorPrimaryFont, setColorPrimaryFont] = useState<string>("")
+    const [inputs, setInputs] = useState({ password: false });
+    const [initView, setInitView] = useState({ password: true });
+
+
+    useEffect(() => {
+        const getData = async () => {
+            try {
+                const restaurantName = localStorage.getItem("restaurantName") ?? "";
+                const firebaseQuery = await queryFirebase(restaurantName);
+                const arraydata = await firebaseQuery.docs;
+                const restColors = arraydata.find(doc => doc.id === 'colors')?.data();
+                if (restColors) {
+                    const { primary, background, title, primaryFont } = restColors;
+                    setBgColor(background);
+                    setColorPrimary(primary);
+                    setColorTitle(title);
+                    setColorPrimaryFont(primaryFont);
+                }
+            } catch (error) {
+                throw new Error('error');
+            }
+        }
+        getData();
+    }, [])
+    const handleChange = (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        let { name, value } = event.target;
+        switch (name) {
+            case "password":
+                let validPass = ((value.length > 7) && /^(?=.*\d)/.test(value)) ? true : false
+                setInitView(initView => ({ ...initView, [name]: false }))
+                setInputs(inputs => ({ ...inputs, [name]: validPass }))
+                const insertValue = { ...values }
+                insertValue[name] = validPass ? value : ""
+                setValues(insertValue)
+                break;
+        }
+    };
+
+    const handleClickShowPassword = () => {
+        setValues({ ...values, showPassword: !values.showPassword });
+    };
+
+    const handleMouseDownPassword = (event: React.MouseEvent<HTMLButtonElement>) => {
+        event.preventDefault();
+    };
+    return (
+        <>
+            <Box className={classes.root} style={{ backgroundColor: `${bgColor}` }}>
+                <MenuAppBar showFilter={true} />
+                <Box>
+                    {bgColor.length ? (
+                        <Box>
+                            <Box my={1} px={2}>
+                                <Typography variant="h5" style={{ color: `${colorTitle}`, fontWeight: 900 }}>My Information</Typography>
+                            </Box>
+                            <Box position="relative" top={15} px={2}>
+                                <Paper elevation={5} style={{ borderRadius: "12px", padding: "8px 5px" }}>
+                                    <Box mx={2}>
+                                        <TextField fullWidth label="Name" className={classes.margin}
+                                            name="Name" value="John" disabled />
+                                        <TextField fullWidth label="SureName" className={classes.margin}
+                                            name="sureName" value="Due" disabled
+                                        />
+
+                                        <TextField fullWidth label="E-mail" className={classes.margin}
+                                            name="email" value="John@gmail.com" disabled />
+
+                                        <TextField fullWidth label="Phone Number"
+                                            className={classes.margin} name="phoneNumber"
+                                            value="+9696969696" disabled
+                                        />
+
+                                        <TextField
+                                            fullWidth
+                                            error={inputs.password ? false : !initView.password}
+                                            helperText="The password must contain at least 8 characters and a number."
+                                            FormHelperTextProps={{ hidden: inputs.password ? true : initView.password }}
+                                            id="input-with-icon-Password"
+                                            label="Password"
+                                            type={values.showPassword ? 'text' : 'password'}
+                                            className={classes.margin}
+                                            onChange={handleChange}
+                                            name="password"
+                                            InputLabelProps={{ shrink: true }}
+                                            placeholder="Password"
+                                            InputProps={{
+                                                endAdornment: (
+                                                    <InputAdornment position="end">
+                                                        <IconButton
+                                                            aria-label="toggle password visibility"
+                                                            onClick={handleClickShowPassword}
+                                                            onMouseDown={handleMouseDownPassword}>
+                                                            {values.showPassword ? <Visibility className={classes.marginRight} /> : <VisibilityOff className={classes.marginRight} />}
+                                                            {inputs.password && <CheckIcon className={classes.signUpMatchCheckColor} />}
+                                                        </IconButton>
+                                                    </InputAdornment>
+                                                )
+                                            }}
+                                        />
+
+
+                                    </Box>
+                                </Paper>
+                                <Box textAlign="center" mt={2}>
+                                    <Button
+                                        type="submit"
+                                        variant="contained"
+                                        className={classes.infoButton}
+                                        style={{ backgroundColor: `${colorPrimary}`, color: `${colorPrimaryFont}` }}
+                                        fullWidth>
+                                        Change Password
+                                    </Button>
+                                </Box>
+                                <Box>
+                                    <Paper elevation={5} style={{ borderRadius: "12px", padding: "8px 5px" }}>
+                                        <Typography variant="h6" style={{ fontSize: "14px" }}>would you like to recieve notifications from this app and updates on your order?</Typography>
+                                    </Paper>
+                                </Box>
+
+                            </Box>
+
+                        </Box>
+
+                    )
+                        :
+                        (<Box display="flex" justifyContent="center" alignItems="center" className={classes.progressAlign}>
+                            <CircularProgress />
+                        </Box>)
+                    }
+                </Box>
+            </Box>
+        </>
+    )
+}
+
+export default MyInformation;
